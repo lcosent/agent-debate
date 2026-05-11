@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-debate"
+version = "0.1.0"
+description = "Multi-agent bull/bear/judge debate for pressure-testing investment theses"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Luca Cosentino" }]
+dependencies = ["openai>=1.40", "click>=8.1", "rich>=13.7"]
+
+[project.scripts]
+agent-debate = "agent_debate.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["agent_debate*"]
