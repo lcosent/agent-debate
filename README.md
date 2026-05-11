@@ -1,62 +1,67 @@
 # agent-debate
 
-A **multi-agent debate** that pressure-tests an investment thesis. Three agents — bull, bear, and judge — argue from explicit roles, then a structured verdict drops out.
+A **multi-agent debate** that pressure-tests any consequential decision — hiring, product strategy, policy, acquisitions, architecture choices, investment theses. Three agents — `advocate`, `skeptic`, and `judge` — argue from explicit roles, then a structured verdict drops out.
 
 ```
-$ agent-debate run theses/anthropic_secondary_2026.md --rounds 3
+$ agent-debate run decisions/hire_senior_eng_remote_only.md --rounds 3
 
-THESIS: Buy Anthropic secondary at $300B valuation (March 2026)
-─────────────────────────────────────────────────────────────────
+DECISION: Hire Senior Engineer A — remote-only candidate, no overlap with team timezone
+─────────────────────────────────────────────────────────────────────────────────
 ROUND 1
-  BULL: Frontier AI is a duopoly. Anthropic + OpenAI capture 60%+
-        of enterprise inference; Anthropic's Constitutional AI brand
-        gives it disproportionate share of regulated industries...
-  BEAR: $300B values Anthropic at 30x trailing revenue. NVIDIA-style
-        capex creates structural unprofitability. Foundation-model
-        commoditization in 18-24 months erodes margins...
+  ADVOCATE: Strong technical signal — three letters of recommendation from
+            principal engineers, three-year track record shipping in async cultures.
+            Async-first hire is a forcing function for better written docs.
+  SKEPTIC: Real-time architectural decisions in this team happen on a daily 1-hour
+            call. Zero overlap means the candidate becomes a follower, not a leader.
+            We are not async-mature enough to absorb the operational cost.
 
 ROUND 2
-  BULL: Counter — even at 30x revenue, growth rate of 5x annually
-        compresses multiple. AGI optionality is asymmetric...
-  BEAR: Counter — 5x growth is unsustainable. Saturation at $20B ARR
-        within 24 months is the consensus model...
-
-ROUND 3
-  BULL: ...
-  BEAR: ...
+  ADVOCATE: ...
+  SKEPTIC: ...
 
 JUDGE VERDICT
-  Stronger argument: BEAR (8.5/10 vs 7.2/10)
+  Stronger argument: SKEPTIC (8.0/10 vs 7.0/10)
   Key uncalled risks:
-    1. Capital intensity / runway to FCF positive
-    2. Lock-in vs OpenAI on enterprise contracts (incumbency advantage at OpenAI)
-    3. Regulatory tailrisk in EU (AI Act enforcement starting Q3 2026)
-  Recommendation: PASS — current price requires AGI-scenario underwriting.
-
-[full debate transcript saved → runs/anthropic_secondary_2026.md]
+    1. No one on the team has hired async-only before — performance management gap
+    2. Visa/contractor structure for the candidate's jurisdiction
+    3. Team-culture impact: 6th remote hire vs first in this timezone
+  Recommendation: WAIT — solve async operating model first, then hire.
 ```
 
 ## Why this exists
 
-Single-agent LLM reasoning has a well-known weakness: **the model agrees with the framing in the prompt.** Ask it "is this a good investment?" and you get a thoughtful "yes." Ask "what could go wrong?" and you get a thoughtful "many things." The framing dominates the output.
+Single-agent LLM reasoning has a well-known weakness: **the model agrees with the framing in the prompt.** Ask it "is this a good hire?" and you get a thoughtful "yes." Ask "what are the risks?" and you get a thoughtful "many." The framing dominates the output.
 
-Multi-agent debate forces the model to **argue against itself**, with each side incentivized (via the role prompt and the judge) to find the strongest case it can. The judge then evaluates which side made the better argument.
+Multi-agent debate forces the model to **argue against itself**, with each side incentivized (via the role prompt and the judge) to find the strongest case it can. The judge then evaluates which side made the better argument and surfaces risks neither side raised.
 
-This is not a stock-picking tool. It is a **structured devil's-advocate generator** — useful for any high-stakes asymmetric decision where you want to surface the strongest counter-argument before deciding.
+This is not a decision-making tool. It is a **structured devil's-advocate generator** — useful for any high-stakes asymmetric decision where you want to surface the strongest counter-argument before committing.
+
+## What it works on
+
+Any decision you can describe in a paragraph of markdown. Examples:
+
+- **Hiring** — should we extend an offer? to whom? at what level?
+- **Product strategy** — should we ship feature X? kill feature Y? consolidate two SKUs?
+- **Architecture** — monolith vs services, build vs buy, language migration
+- **M&A** — acquire vs partner, target valuation, integration approach
+- **Policy** — return-to-office, comp philosophy, performance review changes
+- **Investments** — capital allocation, vendor selection, secondary tender participation
+
+The roles are intentionally generic. Override `roles/advocate.txt` and `roles/skeptic.txt` if you want domain-specific personas (e.g., "skeptic-CFO" for capital decisions, "skeptic-PM" for product).
 
 ## How it works
 
 ```
             ┌─────────────┐
-            │   Thesis    │
+            │  Decision   │
             └──────┬──────┘
                    │
           ┌────────┴────────┐
           ▼                 ▼
-     ┌────────┐        ┌────────┐
-     │  BULL  │◄──────►│  BEAR  │   N rounds of paired argument
-     │ agent  │        │ agent  │
-     └────────┘        └────────┘
+     ┌─────────┐       ┌─────────┐
+     │ADVOCATE │◄─────►│ SKEPTIC │   N rounds of paired argument
+     │  agent  │       │  agent  │
+     └─────────┘       └─────────┘
           │                 │
           └────────┬────────┘
                    ▼
@@ -66,68 +71,72 @@ This is not a stock-picking tool. It is a **structured devil's-advocate generato
               └────────┘
 ```
 
-Each agent runs as its own prompt against the same model. Round-robin debate, with each side reading the previous round before responding. The judge sees the full transcript and produces a structured verdict.
+Each agent is its own prompt against the same model. Round-robin debate, with each side reading the previous round before responding. The judge sees the full transcript and produces a structured JSON verdict.
 
 ## Quickstart
 
 ```bash
 pip install -e .
 
-# bundled example
-agent-debate run theses/anthropic_secondary_2026.md
+# bundled examples (multiple domains)
+agent-debate run decisions/hire_senior_eng_remote_only.md
+agent-debate run decisions/migrate_to_kotlin.md
+agent-debate run decisions/acquire_stablecoin_issuer.md
+agent-debate run decisions/return_to_office_5_days.md
 
-# your own thesis (markdown)
-agent-debate run path/to/thesis.md --rounds 3 --model openai:gpt-4o
+# your own decision (markdown)
+agent-debate run path/to/decision.md --rounds 3 --model openai:gpt-4o
 
-# compare two models on the same thesis
-agent-debate run thesis.md --model openai:gpt-4o
-agent-debate run thesis.md --model anthropic:claude-3-5-sonnet
+# compare verdicts across models
+agent-debate run decision.md --model openai:gpt-4o
+agent-debate run decision.md --model anthropic:claude-3-5-sonnet
 agent-debate diff runs/*.json
 ```
 
-## Thesis format
+## Decision format
 
-Plain markdown. The first H1 is the title; remaining content is context the agents read.
+Plain markdown. The first H1 is the title; remaining content is the context the agents read.
 
 ```markdown
-# Buy Anthropic secondary at $300B valuation
+# Should we hire Senior Engineer A as a remote-only contributor with no timezone overlap?
 
 ## Context
-- $300B post-money, March 2026
-- ARR run rate: ~$10B
-- Capex commitments: $9B for compute through 2027
-...
+- 12-person engineering team, all in PST timezone
+- Candidate is in CET, ~9 hour offset
+- Team rituals: daily 1-hour standup, weekly architectural review
+- Strong technical signal: ex-Stripe, ex-Plaid, three principal-engineer references
+- We have never hired async-only before
 
 ## What I'm trying to decide
-Whether to participate in a secondary round at this valuation
-or wait for the next funding round.
+Whether to extend an offer, or restart the search for a same-timezone candidate.
 ```
 
-## Bundled theses
+## Bundled decisions
 
 ```
-theses/
-├── anthropic_secondary_2026.md
-├── short_treasury_long_btc.md
-├── acquire_stablecoin_issuer.md
-└── nvidia_at_4t_valuation.md
+decisions/
+├── hire_senior_eng_remote_only.md      # hiring
+├── migrate_to_kotlin.md                # architecture
+├── return_to_office_5_days.md          # policy
+├── acquire_stablecoin_issuer.md        # M&A / investment
+└── kill_feature_y_to_focus.md          # product
 ```
 
-Use them as templates.
+Use them as templates. The bundled examples are deliberately not personally identifying.
 
 ## Configuration
 
-Three role prompts under `agent_debate/roles/`. Edit them for different decision domains (M&A, hiring, product launches). They are intentionally short and aggressive — the goal is to extract genuine disagreement, not collaboration.
+Three role prompts under `agent_debate/roles/`. Edit them for different decision domains. They are intentionally short and aggressive — the goal is to extract genuine disagreement, not collaboration.
 
 | Role | Lives in |
 |---|---|
-| Bull (argues for the thesis) | `roles/bull.txt` |
-| Bear (argues against) | `roles/bear.txt` |
+| Advocate (argues for the decision as stated) | `roles/advocate.txt` |
+| Skeptic (argues against) | `roles/skeptic.txt` |
 | Judge (structured verdict) | `roles/judge.txt` |
 
 ## What this is not
 
-- **Not financial advice.** The output is a structured argument; not a recommendation.
+- **Not advice.** The output is a structured argument; not a recommendation.
 - **Not a research tool.** The agents reason from the context you provide. Garbage in, garbage out.
 - **Not a multi-agent framework.** For agent orchestration, use AutoGen or LangGraph. This is one small purpose-built script.
 

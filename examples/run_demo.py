@@ -6,7 +6,7 @@ from agent_debate.debate import run_debate
 
 
 def main():
-    thesis = Path("theses/acquire_stablecoin_issuer.md").read_text()
+    thesis = Path("decisions/hire_senior_eng_remote_only.md").read_text()
     result = run_debate(thesis, model="local", rounds=2)
     print(result.transcript())
     if result.verdict:
